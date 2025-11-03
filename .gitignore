@@ -1,0 +1,29 @@
+# === Archivos de Compilación de Maven ===
+target/
+*.jar
+*.war
+*.ear
+
+# === Archivos de Log ===
+*.log
+
+# === Archivos de IDE ===
+.idea/
+.vscode/
+*.iml
+*.project
+*.classpath
+.settings/
+
+# === Archivos de Sistema Operativo ===
+.DS_Store
+Thumbs.db
+
+# === ¡¡EL MÁS IMPORTANTE: SECRETOS!! ===
+# Ignora el archivo de propiedades que tiene las contraseñas
+application.properties
+
+# (También es buena idea ignorar los archivos de configuración
+# de IntelliJ que pueden contener datos locales)
+.idea/workspace.xml
+.idea/dataSources.local.xml
