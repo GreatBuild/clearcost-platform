@@ -23,15 +23,10 @@ public class InvitationListener {
      */
     @RabbitListener(queues = RabbitMQConfig.INVITATION_QUEUE)
     public void handleInvitation(Invitation invitation) {
-        log.info("Evento recibido: Creando invitación...");
         try {
-            // (Spring AMQP deserializará automáticamente el JSON a un objeto Invitation
-            // si las propiedades coinciden)
             invitationService.createInvitation(invitation);
-            log.info("¡Invitación procesada y guardada!");
         } catch (Exception e) {
-            log.error("Error al procesar la invitación desde RabbitMQ: {}", e.getMessage(), e);
-            // (Aquí iría la lógica de reintento o "dead-letter queue")
+            log.error("Error al procesar la invitación desde RabbitMQ: {}", e.getMessage());
         }
     }
 }
