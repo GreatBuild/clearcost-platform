@@ -52,18 +52,10 @@ public class OrganizationServiceImpl implements OrganizationService {
         }
 
         try {
-            // Hacemos la llamada HTTP síncrona al otro servicio
-            log.info("Validando Owner ID: {} en msvc-users", organization.getOwnerId());
-            // (userClient.getUserById() devolverá un UserDTO o lanzará una excepción)
             userClient.getUserById(organization.getOwnerId());
-            log.info("Owner ID validado exitosamente.");
-
         } catch (FeignException.NotFound e) {
-            // ¡El msvc-users nos dijo que el usuario NO existe!
-            log.warn("Validación fallida. Usuario con ID {} no encontrado en msvc-users.", organization.getOwnerId());
             throw new IllegalArgumentException("El 'ownerId' " + organization.getOwnerId() + " no existe.");
         } catch (Exception e) {
-            // ¡El msvc-users está caído o hay un error de red!
             log.error("Error al validar Owner ID {}: {}", organization.getOwnerId(), e.getMessage());
             throw new IllegalStateException("Error de comunicación con el servicio de usuarios.");
         }
@@ -100,6 +92,41 @@ public class OrganizationServiceImpl implements OrganizationService {
         
         org.removeMember(memberToRemove);
         repository.save(org);
-        log.info("Miembro {} removido de la organización {}", memberId, organizationId);
+    }
+
+    @Override
+    @Transactional
+    public OrganizationMember addMember(com.greatbuild.clearcost.msvc.organizations.models.dtos.AddMemberDTO dto) {
+        // Verificar que la organización existe
+        Organization org = repository.findById(dto.getOrganizationId())
+                .orElseThrow(() -> new IllegalArgumentException("Organización no encontrada con ID: " + dto.getOrganizationId()));
+
+        // Verificar que el usuario existe en msvc-users
+        try {
+            userClient.getUserById(dto.getUserId());
+        } catch (FeignException.NotFound e) {
+            throw new IllegalArgumentException("Usuario con ID " + dto.getUserId() + " no existe.");
+        } catch (Exception e) {
+            log.error("Error al validar usuario {}: {}", dto.getUserId(), e.getMessage());
+            throw new IllegalStateException("Error de comunicación con el servicio de usuarios.");
+        }
+
+        // Verificar que el usuario no es ya miembro
+        boolean alreadyMember = org.getMembers().stream()
+                .anyMatch(m -> m.getUserId().equals(dto.getUserId()));
+        
+        if (alreadyMember) {
+            throw new IllegalArgumentException("El usuario ya es miembro de la organización.");
+        }
+
+        // Crear el nuevo miembro
+        OrganizationMember member = new OrganizationMember();
+        member.setUserId(dto.getUserId());
+        member.setRole(dto.getRole() != null ? dto.getRole() : "WORKER");
+
+        org.addMember(member);
+        repository.save(org);
+        
+        return member;
     }
 }
