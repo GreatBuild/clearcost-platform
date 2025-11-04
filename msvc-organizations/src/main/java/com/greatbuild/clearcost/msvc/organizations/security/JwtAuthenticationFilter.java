@@ -73,9 +73,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // 5. Si ya está autenticado, no hacer nada
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                
-                log.info("✅ Token JWT válido para usuario: {} con roles: {}", userEmail, roles);
-
                 // 6. Crear autenticación con los roles del JWT (sin consultar BD)
                 List<SimpleGrantedAuthority> authorities = roles.stream()
                         .map(SimpleGrantedAuthority::new)

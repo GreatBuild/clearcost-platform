@@ -1,5 +1,6 @@
 package com.greatbuild.clearcost.msvc.organizations.services;
 
+import com.greatbuild.clearcost.msvc.organizations.models.dtos.AddMemberDTO;
 import com.greatbuild.clearcost.msvc.organizations.models.entities.Organization;
 import com.greatbuild.clearcost.msvc.organizations.models.entities.OrganizationMember;
 import java.util.List;
@@ -12,4 +13,5 @@ public interface OrganizationService {
     void delete(Long id);
     List<OrganizationMember> getMembers(Long organizationId);
     void removeMember(Long organizationId, Long memberId);
+    OrganizationMember addMember(AddMemberDTO dto);
 }

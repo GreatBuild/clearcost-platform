@@ -3,6 +3,7 @@ package com.greatbuild.clearcost.msvc.organizations.controllers;
 import com.greatbuild.clearcost.msvc.organizations.models.dtos.CreateOrganizationDTO;
 import com.greatbuild.clearcost.msvc.organizations.models.dtos.OrganizationResponseDTO;
 import com.greatbuild.clearcost.msvc.organizations.models.entities.Organization;
+import com.greatbuild.clearcost.msvc.organizations.models.entities.OrganizationMember;
 import com.greatbuild.clearcost.msvc.organizations.services.OrganizationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -47,7 +48,6 @@ public class OrganizationController {
     @Operation(summary = "Listar todas las organizaciones", 
                description = "Obtiene la lista de todas las organizaciones registradas. No incluye la lista de members (solo el count).")
     public ResponseEntity<List<OrganizationResponseDTO>> listAll(Authentication authentication) {
-        log.info("Usuario {} listando organizaciones", authentication.getName());
         List<OrganizationResponseDTO> organizations = service.findAll().stream()
                 .map(this::toResponseDTO)
                 .collect(Collectors.toList());
@@ -62,7 +62,6 @@ public class OrganizationController {
     @Operation(summary = "Obtener organización por ID", 
                description = "Consulta los detalles de una organización específica. No incluye la lista de members.")
     public ResponseEntity<OrganizationResponseDTO> getById(@PathVariable("id") Long id, Authentication authentication) {
-        log.info("Usuario {} consultando organización {}", authentication.getName(), id);
         Optional<Organization> org = service.findById(id);
         return org.map(this::toResponseDTO)
                 .map(ResponseEntity::ok)
@@ -79,8 +78,6 @@ public class OrganizationController {
     @Operation(summary = "Crear nueva organización", 
                description = "Crea una nueva organización. Solo usuarios con ROLE_WORKER pueden crear organizaciones. El usuario se convierte en CONTRACTOR (dueño) de la organización. La organización comienza sin miembros.")
     public ResponseEntity<?> create(@Valid @RequestBody CreateOrganizationDTO dto, Authentication authentication) {
-        log.info("ROLE_WORKER {} creando organización (será CONTRACTOR)", 
-                authentication.getName());
         try {
             // Convertir DTO a entidad
             Organization organization = new Organization();
@@ -90,8 +87,6 @@ public class OrganizationController {
             organization.setOwnerId(dto.getOwnerId());
             
             Organization newOrg = service.save(organization);
-            log.info("Organización {} creada. Usuario {} es ahora CONTRACTOR de esta organización", 
-                    newOrg.getId(), authentication.getName());
             
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(toResponseDTO(newOrg));
@@ -112,8 +107,8 @@ public class OrganizationController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('WORKER')")
-    @Operation(summary = "Actualizar organización", 
-               description = "Actualiza la información de una organización. Solo el CONTRACTOR (owner) puede actualizar su organización.")
+    @Operation(summary = "Actualizar organización",
+            description = "Actualiza la información de una organización. Solo el CONTRACTOR (owner) puede actualizar su organización.")
     public ResponseEntity<?> update(
             @PathVariable("id") Long id,
             @Valid @RequestBody CreateOrganizationDTO dto,
@@ -128,13 +123,13 @@ public class OrganizationController {
         //     return ResponseEntity.status(HttpStatus.FORBIDDEN)
         //         .body(Map.of("error", "Solo el CONTRACTOR puede actualizar la organización"));
         // }
-        
+
         Organization organization = existing.get();
         organization.setLegalName(dto.getLegalName());
         organization.setCommercialName(dto.getCommercialName());
         organization.setRuc(dto.getRuc());
         organization.setOwnerId(dto.getOwnerId());
-        
+
         Organization updated = service.save(organization);
         return ResponseEntity.ok(toResponseDTO(updated));
     }
@@ -149,7 +144,6 @@ public class OrganizationController {
     @Operation(summary = "Eliminar organización", 
                description = "Elimina una organización. Solo el CONTRACTOR (owner) puede eliminar su organización.")
     public ResponseEntity<?> delete(@PathVariable("id") Long id, Authentication authentication) {
-        log.info("Usuario {} (ROLE_WORKER) eliminando organización {}", authentication.getName(), id);
         Optional<Organization> existing = service.findById(id);
         if (existing.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -161,6 +155,30 @@ public class OrganizationController {
         // }
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Agregar un miembro a una organización
+     * Usado por el microservicio de invitaciones cuando un usuario acepta una invitación
+     */
+    @PostMapping("/{id}/members")
+    @Operation(summary = "Agregar miembro a organización", 
+               description = "Agrega un miembro a una organización. Usado internamente por el servicio de invitaciones.")
+    public ResponseEntity<?> addMember(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody com.greatbuild.clearcost.msvc.organizations.models.dtos.AddMemberDTO dto) {
+        try {
+            dto.setOrganizationId(id);
+            OrganizationMember member = service.addMember(dto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(member);
+        } catch (IllegalArgumentException e) {
+            log.warn("Error al agregar miembro: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            log.error("Error de servicio al agregar miembro: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(java.util.Map.of("error", e.getMessage()));
+        }
     }
 
     /**
