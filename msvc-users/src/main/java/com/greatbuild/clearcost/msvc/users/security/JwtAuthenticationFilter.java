@@ -63,7 +63,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 // 6. Si el token es válido...
                 if (jwtService.isTokenValid(jwt, userDetails)) {
-                    log.info("Token JWT válido para usuario: {}", userEmail);
                     // 7. Creamos la autenticación y la guardamos en el Contexto de Seguridad
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,

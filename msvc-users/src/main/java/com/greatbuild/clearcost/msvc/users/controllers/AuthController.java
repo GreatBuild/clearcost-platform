@@ -51,7 +51,6 @@ public class AuthController {
     // --- Endpoint PÚBLICO: Login Local ---
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequestDTO loginRequest) {
-        log.info("--- INICIANDO AuthController.authenticateUser() para {} ---", loginRequest.getEmail());
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -59,10 +58,13 @@ public class AuthController {
                             loginRequest.getPassword()
                     )
             );
-            log.info("Usuario autenticado exitosamente.");
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            String jwt = jwtService.generateToken(authentication);
-            log.info("JWT generado.");
+            
+            // Obtenemos el userId del usuario autenticado
+            User user = userService.findByEmail(loginRequest.getEmail())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            
+            String jwt = jwtService.generateToken(user.getId(), authentication);
             return ResponseEntity.ok(new AuthResponseDTO(jwt));
         } catch (AuthenticationException e) {
             log.warn("¡FALLO DE LOGIN! Email o password incorrecto para {}: {}", loginRequest.getEmail(), e.getMessage());
@@ -75,7 +77,6 @@ public class AuthController {
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequestDTO registerRequest) {
         try {
             User user = userService.registerNewUser(registerRequest);
-            log.info("Usuario registrado exitosamente: {}", user.getEmail());
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(Map.of(
                             "message", "Registro exitoso",
@@ -119,8 +120,8 @@ public class AuthController {
                         .collect(Collectors.toSet())
         );
 
-        // Generamos el JWT
-        String jwt = jwtService.generateToken(jwtAuthentication);
+        // Generamos el JWT con userId
+        String jwt = jwtService.generateToken(user.getId(), jwtAuthentication);
 
         // Respondemos según si necesita o no seleccionar rol
         Map<String, Object> response = new HashMap<>();
