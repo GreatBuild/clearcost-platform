@@ -6,8 +6,6 @@ import com.greatbuild.clearcost.msvc.users.models.entities.Role;
 import com.greatbuild.clearcost.msvc.users.models.entities.User;
 import com.greatbuild.clearcost.msvc.users.repositories.RoleRepository;
 import com.greatbuild.clearcost.msvc.users.repositories.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -23,8 +21,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService, UserDetailsService {
-
-    private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -81,13 +77,8 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        log.info("[DEBUG] loadUserByUsername: Buscando usuario por email: {}", email);
-
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> {
-                    log.warn("[DEBUG] loadUserByUsername: Usuario no encontrado: {}", email);
-                    return new UsernameNotFoundException("Usuario no encontrado con email: " + email);
-                });
+                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado con email: " + email));
 
         // ¡ARREGLADO! Aceptamos usuarios de LOCAL y GOOGLE
         Set<SimpleGrantedAuthority> authorities = user.getRoles().stream()
@@ -99,5 +90,12 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                 user.getPassword() != null ? user.getPassword() : "", // Maneja 'null' para Google
                 authorities
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<User> findById(Long id) {
+        // (Asumiendo que tu UserRepository extiende JpaRepository, este método ya existe)
+        return userRepository.findById(id);
     }
 }

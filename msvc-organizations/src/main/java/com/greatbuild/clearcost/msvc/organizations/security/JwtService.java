@@ -1,75 +1,49 @@
-package com.greatbuild.clearcost.msvc.users.security;
+package com.greatbuild.clearcost.msvc.organizations.security;
 
-import com.greatbuild.clearcost.msvc.users.config.JwtProperties;
+import com.greatbuild.clearcost.msvc.organizations.config.JwtProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
+/**
+ * Servicio JWT STATELESS para msvc-organizations
+ * NO consulta la base de datos - confía en el JWT firmado por msvc-users
+ */
 @Component
 public class JwtService {
 
     private final String jwtSecret;
     private final int jwtExpirationMs;
 
-    // Inyección por constructor usando JwtProperties
     public JwtService(JwtProperties jwtProperties) {
         this.jwtSecret = jwtProperties.getSecret();
         this.jwtExpirationMs = jwtProperties.getExpirationMs();
     }
 
-    // Genera el token CON ROLES (El JWT "Pasaporte" con autoridades incrustadas)
-    public String generateToken(Authentication authentication) {
-        String username = authentication.getName(); // El email
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
-
-        // Extraemos los roles del usuario autenticado
-        List<String> roles = authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.toList());
-
-        return Jwts.builder()
-                .setSubject(username)
-                .claim("roles", roles) // ¡¡CLAVE!! Incrustamos los roles en el JWT
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
-                .compact();
-    }
-
-    // Extrae el email del token
+    // Extrae el email (subject) del token
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    // Extrae los roles del token
+    // Extrae los roles del token (la clave del patrón "JWT Pasaporte")
     @SuppressWarnings("unchecked")
     public List<String> extractRoles(String token) {
         Claims claims = extractAllClaims(token);
         return claims.get("roles", List.class);
     }
 
-    // Valida el token
-    public boolean isTokenValid(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
-    }
-
-    // Valida el token SIN cargar UserDetails (validación stateless)
+    // Valida el token de forma STATELESS (sin consultar BD)
+    // Solo verifica: firma correcta + no expirado
     public boolean isTokenValid(String token) {
         try {
+            extractAllClaims(token); // Si lanza excepción, firma incorrecta
             return !isTokenExpired(token);
         } catch (Exception e) {
             return false;
@@ -89,7 +63,7 @@ public class JwtService {
         return claimsResolver.apply(claims);
     }
 
-    // ¡Usa la API antigua 'parser()' para máxima compatibilidad!
+    // Parsea y valida la firma del token
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
                 .setSigningKey(getSignInKey())

@@ -19,7 +19,10 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        // Sembrar los roles principales
+        // Sembrar los roles principales del sistema
+        // ROLE_CLIENT: Cliente que contrata servicios de construcción
+        // ROLE_WORKER: Trabajador de construcción que puede crear/unirse a organizaciones
+        // ROLE_PENDING_SELECTION: Usuario OAuth2 que aún no ha seleccionado su rol
         seedRole("ROLE_CLIENT");
         seedRole("ROLE_WORKER");
         seedRole("ROLE_PENDING_SELECTION");

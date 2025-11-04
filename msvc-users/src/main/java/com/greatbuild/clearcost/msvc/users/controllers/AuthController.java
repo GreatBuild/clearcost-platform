@@ -75,9 +75,16 @@ public class AuthController {
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequestDTO registerRequest) {
         try {
             User user = userService.registerNewUser(registerRequest);
-            return ResponseEntity.status(HttpStatus.CREATED).body(user);
+            log.info("Usuario registrado exitosamente: {}", user.getEmail());
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(Map.of(
+                            "message", "Registro exitoso",
+                            "email", user.getEmail()
+                    ));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            log.warn("Error en registro: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 
