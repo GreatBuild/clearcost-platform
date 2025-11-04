@@ -58,7 +58,7 @@ public class SecurityConfig {
                                 "/api/auth/oauth-success", // El callback de Google
                                 "/login/**",               // Flujo interno de Spring Security
                                 "/api/auth/users/**",      // Endpoints antiguos de usuarios
-                                "/api/users/**",           // Endpoints nuevos de usuarios (para msvc-organizations)
+                                "/api/users/internal/**",  // Endpoints INTERNOS para comunicación entre microservicios (SIN JWT)
                                 "/oauth2/**",              // Flujo interno de Spring Security
                                 "/v3/api-docs/**",         // Swagger JSON
                                 "/swagger-ui/**",          // Swagger UI

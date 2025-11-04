@@ -29,7 +29,28 @@ public class JwtService {
         this.jwtExpirationMs = jwtProperties.getExpirationMs();
     }
 
-    // Genera el token CON ROLES (El JWT "Pasaporte" con autoridades incrustadas)
+    // Genera el token CON ROLES Y USER_ID (El JWT "Pasaporte" con autoridades incrustadas)
+    public String generateToken(Long userId, Authentication authentication) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
+
+        // Extraemos los roles del usuario autenticado
+        List<String> roles = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+
+        return Jwts.builder()
+                .setSubject(userId.toString()) // ¡¡IMPORTANTE!! Usamos userId como subject
+                .claim("email", authentication.getName()) // Guardamos el email como claim adicional
+                .claim("roles", roles) // ¡¡CLAVE!! Incrustamos los roles en el JWT
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    // Sobrecarga del método anterior para mantener compatibilidad (deprecated)
+    @Deprecated
     public String generateToken(Authentication authentication) {
         String username = authentication.getName(); // El email
         Date now = new Date();
