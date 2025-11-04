@@ -56,6 +56,7 @@
     <modules>
         <module>msvc-users</module>
         <module>msvc-organizations</module>
+        <module>msvc-invitations</module>
     </modules>
 
     <build>
