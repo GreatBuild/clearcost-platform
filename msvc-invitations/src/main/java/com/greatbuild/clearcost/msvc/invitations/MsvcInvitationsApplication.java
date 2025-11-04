@@ -2,8 +2,12 @@ package com.greatbuild.clearcost.msvc.invitations;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 
 @SpringBootApplication
+@EnableFeignClients(basePackages = "com.greatbuild.clearcost.msvc.invitations.clients")
+@EnableConfigurationProperties
 public class MsvcInvitationsApplication {
 
     public static void main(String[] args) {

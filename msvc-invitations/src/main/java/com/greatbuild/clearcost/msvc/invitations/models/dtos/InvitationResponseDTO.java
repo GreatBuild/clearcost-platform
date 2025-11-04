@@ -1,27 +1,23 @@
-package com.greatbuild.clearcost.msvc.invitations.models.entities;
+package com.greatbuild.clearcost.msvc.invitations.models.dtos;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotNull;
+import com.greatbuild.clearcost.msvc.invitations.models.entities.InvitationStatus;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "invitations")
-public class Invitation {
+public class InvitationResponseDTO {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private Long organizationId;
+    private String organizationName;
+    private Long inviterId;
+    private String inviterName;
+    private Long inviteeUserId;
+    private String inviteeEmail;
+    private InvitationStatus status;
+    private LocalDateTime createdAt;
+    private LocalDateTime expiresAt;
 
-    @NotNull
-    private Long organizationId; // ID de la organización (de msvc-organizations)
-
-    @NotNull
-    private Long inviterId; // ID del usuario que invita (de msvc-users)
-
-    @NotNull
-    private Long inviteeUserId; // ID del usuario invitado (de msvc-users)
-
+    // Getters y Setters
     public Long getId() {
         return id;
     }
@@ -38,12 +34,28 @@ public class Invitation {
         this.organizationId = organizationId;
     }
 
+    public String getOrganizationName() {
+        return organizationName;
+    }
+
+    public void setOrganizationName(String organizationName) {
+        this.organizationName = organizationName;
+    }
+
     public Long getInviterId() {
         return inviterId;
     }
 
     public void setInviterId(Long inviterId) {
         this.inviterId = inviterId;
+    }
+
+    public String getInviterName() {
+        return inviterName;
+    }
+
+    public void setInviterName(String inviterName) {
+        this.inviterName = inviterName;
     }
 
     public Long getInviteeUserId() {
@@ -84,22 +96,5 @@ public class Invitation {
 
     public void setExpiresAt(LocalDateTime expiresAt) {
         this.expiresAt = expiresAt;
-    }
-
-    @Email
-    private String inviteeEmail; // Email del invitado (para notificaciones)
-
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    private InvitationStatus status;
-
-    private LocalDateTime createdAt;
-    private LocalDateTime expiresAt;
-
-    @PrePersist
-    public void prePersist() {
-        this.createdAt = LocalDateTime.now();
-        this.expiresAt = LocalDateTime.now().plusDays(7); // ¡Tip! Las invitaciones deben expirar
-        this.status = InvitationStatus.PENDING;
     }
 }
