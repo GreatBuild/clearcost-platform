@@ -40,37 +40,7 @@ public class InvitationServiceImpl implements InvitationService {
     @Override
     @Transactional
     public InvitationResponseDTO createInvitation(CreateInvitationDTO dto, Long inviterId) {
-        // 1. Verificar que la organización existe
-        OrganizationDTO organization;
-        try {
-            organization = organizationFeignClient.getOrganizationById((dto.getOrganizationId()));
-        } catch (Exception e) {
-            log.error("Error al obtener organización {}: {} - {}", 
-                dto.getOrganizationId(), e.getClass().getSimpleName(), e.getMessage());
-            throw new RuntimeException("La organización no existe");
-        }
-
-        // 2. Verificar que el invitador es el creador de la organización
-        if (!organization.getCreatorId().equals(inviterId)) {
-            throw new RuntimeException("Solo el creador de la organización puede enviar invitaciones");
-        }
-
-        // 3. Verificar que el usuario invitado existe y tiene el rol correcto
-        UserDTO invitee;
-        try {
-            invitee = userFeignClient.getUserById(dto.getInviteeUserId());
-        } catch (Exception e) {
-            log.error("Error al obtener usuario invitado {}: {} - {}", 
-                dto.getInviteeUserId(), e.getClass().getSimpleName(), e.getMessage());
-            throw new RuntimeException("El usuario invitado no existe");
-        }
-
-        // 4. Validar que el usuario invitado tiene el rol ROLE_WORKER
-        if (!invitee.hasRole("ROLE_WORKER")) {
-            throw new RuntimeException("Solo se pueden invitar usuarios con rol ROLE_WORKER");
-        }
-
-        // 5. Verificar que no existe una invitación PENDIENTE previa
+        // 1. Verificar que no existe una invitación PENDING o PENDING_PROCESSING previa
         repository.findByOrganizationIdAndInviteeUserIdAndStatus(
                 dto.getOrganizationId(),
                 dto.getInviteeUserId(),
@@ -79,19 +49,31 @@ public class InvitationServiceImpl implements InvitationService {
             throw new RuntimeException("Ya existe una invitación pendiente para este usuario en esta organización");
         });
 
-        // 6. Crear la invitación
+        repository.findByOrganizationIdAndInviteeUserIdAndStatus(
+                dto.getOrganizationId(),
+                dto.getInviteeUserId(),
+                InvitationStatus.PENDING_PROCESSING
+        ).ifPresent(existing -> {
+            throw new RuntimeException("Ya existe una invitación en proceso de validación para este usuario en esta organización");
+        });
+
+        // 2. Crear la invitación con estado PENDING_PROCESSING (sin validar)
         Invitation invitation = new Invitation();
         invitation.setOrganizationId(dto.getOrganizationId());
         invitation.setInviterId(inviterId);
         invitation.setInviteeUserId(dto.getInviteeUserId());
-        invitation.setInviteeEmail(dto.getInviteeEmail() != null ? dto.getInviteeEmail() : invitee.getEmail());
+        invitation.setInviteeEmail(dto.getInviteeEmail());
+        invitation.setStatus(InvitationStatus.PENDING_PROCESSING);
 
         invitation = repository.save(invitation);
 
-        // 7. Publicar evento en RabbitMQ
+        // 3. Publicar evento para validación asíncrona
+        publishValidationRequest(invitation);
+
+        // 4. Publicar evento de invitación creada para auditoría
         publishInvitationCreatedEvent(invitation);
 
-        return mapToResponseDTO(invitation, organization, invitee);
+        return mapToResponseDTO(invitation);
     }
 
     @Override
@@ -198,6 +180,25 @@ public class InvitationServiceImpl implements InvitationService {
     }
 
     // Métodos auxiliares para publicar eventos
+    
+    /**
+     * Publica solicitud de validación asíncrona
+     */
+    private void publishValidationRequest(Invitation invitation) {
+        try {
+            InvitationValidationRequestDTO request = new InvitationValidationRequestDTO(
+                invitation.getId(),
+                invitation.getOrganizationId(),
+                invitation.getInviterId(),
+                invitation.getInviteeUserId(),
+                invitation.getInviteeEmail()
+            );
+            rabbitTemplate.convertAndSend("invitation.exchange", "invitation.validation.request", request);
+        } catch (Exception e) {
+            log.error("Error al publicar solicitud de validación: {}", e.getMessage());
+        }
+    }
+    
     private void publishInvitationCreatedEvent(Invitation invitation) {
         try {
             InvitationEventDTO event = new InvitationEventDTO(

@@ -17,11 +17,21 @@ public class RabbitMQConfig {
     public static final String INVITATION_CREATED_QUEUE = "invitation.created.queue";
     public static final String INVITATION_ACCEPTED_QUEUE = "invitation.accepted.queue";
     public static final String INVITATION_REJECTED_QUEUE = "invitation.rejected.queue";
+    
+    // Colas para validación asíncrona
+    public static final String VALIDATION_REQUEST_QUEUE = "invitation.validation.request.queue";
+    public static final String VALIDATION_SUCCESS_QUEUE = "invitation.validation.success.queue";
+    public static final String VALIDATION_FAILED_QUEUE = "invitation.validation.failed.queue";
 
     // Routing keys
     public static final String INVITATION_CREATED_KEY = "invitation.created";
     public static final String INVITATION_ACCEPTED_KEY = "invitation.accepted";
     public static final String INVITATION_REJECTED_KEY = "invitation.rejected";
+    
+    // Routing keys para validación
+    public static final String VALIDATION_REQUEST_KEY = "invitation.validation.request";
+    public static final String VALIDATION_SUCCESS_KEY = "invitation.validation.success";
+    public static final String VALIDATION_FAILED_KEY = "invitation.validation.failed";
 
     /**
      * Exchange principal de tipo topic para eventos de invitaciones
@@ -94,6 +104,65 @@ public class RabbitMQConfig {
                 .bind(invitationRejectedQueue())
                 .to(invitationExchange())
                 .with(INVITATION_REJECTED_KEY);
+    }
+
+    // ========== COLAS Y BINDINGS PARA VALIDACIÓN ASÍNCRONA ==========
+
+    /**
+     * Cola para solicitudes de validación
+     */
+    @Bean
+    public Queue validationRequestQueue() {
+        return new Queue(VALIDATION_REQUEST_QUEUE, true);
+    }
+
+    /**
+     * Cola para validaciones exitosas
+     */
+    @Bean
+    public Queue validationSuccessQueue() {
+        return new Queue(VALIDATION_SUCCESS_QUEUE, true);
+    }
+
+    /**
+     * Cola para validaciones fallidas
+     */
+    @Bean
+    public Queue validationFailedQueue() {
+        return new Queue(VALIDATION_FAILED_QUEUE, true);
+    }
+
+    /**
+     * Binding: solicitud de validación
+     */
+    @Bean
+    public Binding validationRequestBinding() {
+        return BindingBuilder
+                .bind(validationRequestQueue())
+                .to(invitationExchange())
+                .with(VALIDATION_REQUEST_KEY);
+    }
+
+    /**
+     * Binding: validación exitosa
+     */
+    @Bean
+    public Binding validationSuccessBinding() {
+        return BindingBuilder
+                .bind(validationSuccessQueue())
+                .to(invitationExchange())
+                .with(VALIDATION_SUCCESS_KEY);
+    }
+
+    /**
+     * Binding: validación fallida
+     */
+    @Bean
+    public Binding validationFailedBinding() {
+        return BindingBuilder
+                .bind(validationFailedQueue())
+                .to(invitationExchange())
+                .with(VALIDATION_FAILED_KEY);
     }
 
     /**
