@@ -7,19 +7,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 /**
  * Cliente Feign para comunicarse con msvc-users
- * 
- * Cuando Eureka está deshabilitado:
- * - Usar 'url' con la URL completa del servicio
- * - 'name' es solo un identificador
- * 
- * Cuando Eureka está habilitado:
- * - Cambiar a: @FeignClient(name = "msvc-users")
- * - Remover el 'url'
+ * Usa Eureka para service discovery
  */
-@FeignClient(
-    name = "msvc-users",
-    url = "${msvc-users.url:http://localhost:8003}"
-)
+@FeignClient(name = "msvc-users")
 public interface UserFeignClient {
 
     /**
