@@ -60,7 +60,26 @@ public class OrganizationServiceImpl implements OrganizationService {
             throw new IllegalStateException("Error de comunicación con el servicio de usuarios.");
         }
 
-        return repository.save(organization);
+        // Verificar si es una nueva organización (no tiene ID)
+        boolean isNewOrganization = organization.getId() == null;
+        
+        // Guardar la organización
+        Organization savedOrg = repository.save(organization);
+        
+        // Si es nueva, agregar al creador como miembro con rol CONTRACTOR
+        if (isNewOrganization) {
+            OrganizationMember contractorMember = new OrganizationMember();
+            contractorMember.setUserId(savedOrg.getOwnerId());
+            contractorMember.setRole(com.greatbuild.clearcost.msvc.organizations.models.enums.OrganizationRole.CONTRACTOR);
+            
+            savedOrg.addMember(contractorMember);
+            savedOrg = repository.save(savedOrg);
+            
+            log.info("Usuario {} agregado automáticamente como CONTRACTOR de la organización {}", 
+                    savedOrg.getOwnerId(), savedOrg.getId());
+        }
+        
+        return savedOrg;
     }
 
     @Override
@@ -78,17 +97,28 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     @Transactional
-    public void removeMember(Long organizationId, Long memberId) {
+    public void removeMember(Long organizationId, Long memberId, Long requestingUserId) {
         Optional<Organization> orgOpt = repository.findById(organizationId);
         if (orgOpt.isEmpty()) {
             throw new IllegalArgumentException("Organización no encontrada con ID: " + organizationId);
         }
         
         Organization org = orgOpt.get();
+        
+        // Verificar que el usuario solicitante es el CONTRACTOR (owner)
+        if (!org.getOwnerId().equals(requestingUserId)) {
+            throw new IllegalArgumentException("Solo el CONTRACTOR puede eliminar miembros de la organización");
+        }
+        
         OrganizationMember memberToRemove = org.getMembers().stream()
                 .filter(m -> m.getId().equals(memberId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Miembro no encontrado con ID: " + memberId));
+        
+        // Verificar que no se esté intentando eliminar al owner
+        if (memberToRemove.getUserId().equals(org.getOwnerId())) {
+            throw new IllegalArgumentException("No se puede eliminar al CONTRACTOR de la organización");
+        }
         
         org.removeMember(memberToRemove);
         repository.save(org);
@@ -119,14 +149,108 @@ public class OrganizationServiceImpl implements OrganizationService {
             throw new IllegalArgumentException("El usuario ya es miembro de la organización.");
         }
 
-        // Crear el nuevo miembro
+        // Crear el nuevo miembro con rol MEMBER por defecto
         OrganizationMember member = new OrganizationMember();
         member.setUserId(dto.getUserId());
-        member.setRole(dto.getRole() != null ? dto.getRole() : "WORKER");
+        member.setRole(com.greatbuild.clearcost.msvc.organizations.models.enums.OrganizationRole.MEMBER);
 
         org.addMember(member);
         repository.save(org);
         
         return member;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<com.greatbuild.clearcost.msvc.organizations.models.dtos.UserOrganizationResponseDTO> getUserOrganizations(Long userId) {
+        List<Organization> organizations = repository.findByOwnerIdOrMemberUserId(userId);
+        
+        return organizations.stream()
+                .map(org -> {
+                    // Determinar el rol del usuario en esta organización
+                    String userRole;
+                    if (org.getOwnerId().equals(userId)) {
+                        userRole = "CONTRACTOR";
+                    } else {
+                        // Buscar el rol en los miembros
+                        userRole = org.getMembers().stream()
+                                .filter(m -> m.getUserId().equals(userId))
+                                .findFirst()
+                                .map(m -> m.getRole().name())
+                                .orElse("MEMBER"); // Por defecto MEMBER si no se encuentra
+                    }
+                    
+                    return new com.greatbuild.clearcost.msvc.organizations.models.dtos.UserOrganizationResponseDTO(
+                            org.getId(),
+                            org.getLegalName(),
+                            org.getCommercialName(),
+                            org.getRuc(),
+                            org.getOwnerId(),
+                            org.getCreatedAt(),
+                            org.getMembers() != null ? org.getMembers().size() : 0,
+                            userRole
+                    );
+                })
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<com.greatbuild.clearcost.msvc.organizations.models.dtos.MemberResponseDTO> getMembersWithUserData(Long organizationId) {
+        // Verificar que la organización existe
+        Organization org = repository.findById(organizationId)
+                .orElseThrow(() -> new IllegalArgumentException("Organización no encontrada con ID: " + organizationId));
+
+        // Obtener todos los miembros (ahora incluye al CONTRACTOR)
+        List<OrganizationMember> members = org.getMembers();
+        
+        // Ordenar para que CONTRACTOR aparezca primero
+        return members.stream()
+                .sorted((m1, m2) -> {
+                    // CONTRACTOR primero
+                    if (m1.getRole() == com.greatbuild.clearcost.msvc.organizations.models.enums.OrganizationRole.CONTRACTOR 
+                            && m2.getRole() != com.greatbuild.clearcost.msvc.organizations.models.enums.OrganizationRole.CONTRACTOR) return -1;
+                    if (m1.getRole() != com.greatbuild.clearcost.msvc.organizations.models.enums.OrganizationRole.CONTRACTOR 
+                            && m2.getRole() == com.greatbuild.clearcost.msvc.organizations.models.enums.OrganizationRole.CONTRACTOR) return 1;
+                    return 0;
+                })
+                .map(member -> {
+                    try {
+                        // Llamar a msvc-users para obtener datos del usuario
+                        com.greatbuild.clearcost.msvc.organizations.models.dtos.UserDTO user = userClient.getUserById(member.getUserId());
+                        
+                        return new com.greatbuild.clearcost.msvc.organizations.models.dtos.MemberResponseDTO(
+                                member.getId(),
+                                member.getUserId(),
+                                member.getRole().name(), // Convertir enum a String
+                                user.getEmail(),
+                                user.getFirstName(),
+                                user.getLastName()
+                        );
+                    } catch (FeignException.NotFound e) {
+                        log.warn("Usuario con ID {} no encontrado en msvc-users", member.getUserId());
+                        // Retornar DTO con datos básicos si el usuario no existe
+                        return new com.greatbuild.clearcost.msvc.organizations.models.dtos.MemberResponseDTO(
+                                member.getId(),
+                                member.getUserId(),
+                                member.getRole().name(), // Convertir enum a String
+                                "Usuario no encontrado",
+                                "",
+                                ""
+                        );
+                    } catch (Exception e) {
+                        log.error("Error al obtener usuario {}: {}", member.getUserId(), e.getMessage());
+                        // En caso de error de comunicación, retornar datos básicos
+                        return new com.greatbuild.clearcost.msvc.organizations.models.dtos.MemberResponseDTO(
+                                member.getId(),
+                                member.getUserId(),
+                                member.getRole().name(), // Convertir enum a String
+                                "Error al obtener datos",
+                                "",
+                                ""
+                        );
+                    }
+                })
+                .collect(java.util.stream.Collectors.toList());
     }
 }

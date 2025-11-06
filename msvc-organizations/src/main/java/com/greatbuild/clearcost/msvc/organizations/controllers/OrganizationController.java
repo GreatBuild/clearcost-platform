@@ -182,6 +182,108 @@ public class OrganizationController {
     }
 
     /**
+     * Obtiene las organizaciones del usuario autenticado
+     * Retorna organizaciones donde el usuario es CONTRACTOR (owner) o MEMBER con el rol del usuario
+     */
+    @GetMapping("/my-organizations")
+    @PreAuthorize("hasRole('WORKER')")
+    @Operation(summary = "Obtener mis organizaciones",
+            description = "Obtiene todas las organizaciones donde el usuario autenticado es CONTRACTOR (owner) o MEMBER, incluyendo el rol del usuario en cada organización")
+    public ResponseEntity<?> getMyOrganizations(Authentication authentication) {
+        try {
+            // Extraer el userId del JWT
+            Long userId = Long.parseLong(authentication.getName());
+            
+            List<com.greatbuild.clearcost.msvc.organizations.models.dtos.UserOrganizationResponseDTO> organizations = 
+                    service.getUserOrganizations(userId);
+            
+            return ResponseEntity.ok(organizations);
+        } catch (NumberFormatException e) {
+            log.error("Error al parsear userId del authentication: {}", authentication.getName());
+            return ResponseEntity.badRequest()
+                    .body(java.util.Map.of("error", "Usuario inválido en el token"));
+        }
+    }
+
+    /**
+     * Obtiene la lista de miembros de una organización con sus datos de usuario
+     * Incluye al CONTRACTOR y todos los MEMBERS
+     */
+    @GetMapping("/{id}/members")
+    @PreAuthorize("hasRole('WORKER')")
+    @Operation(summary = "Obtener miembros de organización",
+            description = "Obtiene la lista de miembros de una organización con sus datos (nombre, email, rol). Incluye al CONTRACTOR. El usuario solicitante debe ser CONTRACTOR o MEMBER de la organización.")
+    public ResponseEntity<?> getOrganizationMembers(
+            @PathVariable("id") Long id,
+            Authentication authentication) {
+        try {
+            // Extraer userId del JWT
+            Long userId = Long.parseLong(authentication.getName());
+            
+            // Verificar que la organización existe
+            Optional<Organization> orgOpt = service.findById(id);
+            if (orgOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Organization org = orgOpt.get();
+            
+            // Verificar que el usuario es CONTRACTOR (owner) o MEMBER de la organización
+            boolean isContractor = org.getOwnerId().equals(userId);
+            boolean isMember = org.getMembers().stream()
+                    .anyMatch(m -> m.getUserId().equals(userId));
+            
+            if (!isContractor && !isMember) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(java.util.Map.of("error", "No tienes permisos para ver los miembros de esta organización"));
+            }
+            
+            // Obtener miembros con datos de usuario (incluye CONTRACTOR + MEMBERS)
+            List<com.greatbuild.clearcost.msvc.organizations.models.dtos.MemberResponseDTO> members = 
+                    service.getMembersWithUserData(id);
+            
+            return ResponseEntity.ok(members);
+        } catch (NumberFormatException e) {
+            log.error("Error al parsear userId del JWT: {}", authentication.getName());
+            return ResponseEntity.badRequest()
+                    .body(java.util.Map.of("error", "Token JWT inválido"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Elimina un miembro de una organización
+     * Solo el CONTRACTOR (owner) puede eliminar miembros
+     */
+    @DeleteMapping("/{orgId}/members/{memberId}")
+    @PreAuthorize("hasRole('WORKER')")
+    @Operation(summary = "Eliminar miembro de organización",
+            description = "Elimina un miembro de una organización. Solo el CONTRACTOR (owner) puede eliminar miembros.")
+    public ResponseEntity<?> removeMember(
+            @PathVariable("orgId") Long orgId,
+            @PathVariable("memberId") Long memberId,
+            Authentication authentication) {
+        try {
+            // Extraer userId del JWT
+            Long userId = Long.parseLong(authentication.getName());
+            
+            service.removeMember(orgId, memberId, userId);
+            
+            return ResponseEntity.noContent().build();
+        } catch (NumberFormatException e) {
+            log.error("Error al parsear userId del JWT: {}", authentication.getName());
+            return ResponseEntity.badRequest()
+                    .body(java.util.Map.of("error", "Token JWT inválido"));
+        } catch (IllegalArgumentException e) {
+            log.warn("Error al eliminar miembro: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
      * Método helper para convertir Organization a OrganizationResponseDTO
      * Evita incluir la lista completa de members en la respuesta
      */

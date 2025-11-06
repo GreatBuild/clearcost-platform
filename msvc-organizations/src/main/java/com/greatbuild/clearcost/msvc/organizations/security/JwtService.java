@@ -32,6 +32,16 @@ public class JwtService {
         return extractClaim(token, Claims::getSubject);
     }
 
+    // Extrae el userId del token (está en el subject como String)
+    public Long extractUserId(String token) {
+        String subject = extractClaim(token, Claims::getSubject);
+        try {
+            return Long.parseLong(subject);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("userId no encontrado o inválido en el subject del token JWT: " + subject);
+        }
+    }
+
     // Extrae los roles del token (la clave del patrón "JWT Pasaporte")
     @SuppressWarnings("unchecked")
     public List<String> extractRoles(String token) {

@@ -46,7 +46,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
-        final String userEmail;
+        final Long userId;
         final List<String> roles;
 
         // 1. Si no hay token Bearer, continuar sin autenticación
@@ -67,19 +67,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // 4. Extraer email y roles del token (confiar en el JWT)
-            userEmail = jwtService.extractUsername(jwt);
+            // 4. Extraer userId y roles del token (confiar en el JWT)
+            userId = jwtService.extractUserId(jwt);
             roles = jwtService.extractRoles(jwt);
 
             // 5. Si ya está autenticado, no hacer nada
-            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 // 6. Crear autenticación con los roles del JWT (sin consultar BD)
                 List<SimpleGrantedAuthority> authorities = roles.stream()
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toList());
 
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userEmail,  // Principal: el email del usuario
+                        userId.toString(),  // Principal: el userId del usuario (como String para mantener compatibilidad)
                         null,       // Credentials: no necesitamos password
                         authorities // Authorities: roles extraídos del JWT
                 );
