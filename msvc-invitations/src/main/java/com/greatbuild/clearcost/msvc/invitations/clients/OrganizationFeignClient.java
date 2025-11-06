@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "msvc-organizations")
+@FeignClient(name = "msvc-organizations", url = "${msvc.organizations.url:http://localhost:8002}")
 public interface OrganizationFeignClient {
 
     @GetMapping("/api/organizations/{id}")

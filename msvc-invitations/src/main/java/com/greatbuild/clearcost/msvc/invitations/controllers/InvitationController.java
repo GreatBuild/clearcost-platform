@@ -25,7 +25,6 @@ public class InvitationController {
 
     /**
      * Crear una nueva invitación (solo para usuarios CONTRACTOR que sean creadores de la organización)
-     * Retorna 202 Accepted porque la validación es asíncrona
      */
     @PostMapping
     public ResponseEntity<?> createInvitation(
@@ -34,9 +33,10 @@ public class InvitationController {
         try {
             // Obtener el ID del usuario autenticado desde el JWT
             Long inviterId = Long.parseLong(authentication.getName());
+            System.out.println("Inviter ID: " + inviterId);
             
             InvitationResponseDTO response = invitationService.createInvitation(dto, inviterId);
-            return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
