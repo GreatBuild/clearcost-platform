@@ -54,6 +54,7 @@
     </dependencyManagement>
 
     <modules>
+        <module>eureka-server</module>
         <module>msvc-users</module>
         <module>msvc-organizations</module>
         <module>msvc-invitations</module>

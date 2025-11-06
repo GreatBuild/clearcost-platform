@@ -17,8 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
  * - Remover el 'url'
  */
 @FeignClient(
-    name = "msvc-users",
-    url = "${msvc-users.url:http://localhost:8003}"
+    name = "msvc-users"
 )
 public interface UserFeignClient {
 
