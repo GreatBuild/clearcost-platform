@@ -38,6 +38,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
+        // SKIP JWT validation para endpoints internos (comunicación entre microservicios)
+        String requestPath = request.getRequestURI();
+        if (requestPath.startsWith("/api/users/internal/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String userEmail;
