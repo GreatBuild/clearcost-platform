@@ -36,12 +36,13 @@ public class SecurityConfig {
 
                 // Configuración de autorización de endpoints
                 .authorizeHttpRequests(authz -> authz
-                        // Endpoints públicos (si los necesitas)
+                        // Endpoints públicos
                         .requestMatchers(
                                 "/actuator/**",   // Endpoints de monitoreo
                                 "/v3/api-docs/**", // Swagger
                                 "/swagger-ui/**",
-                                "/swagger-ui.html"
+                                "/swagger-ui.html",
+                                "/api/organizations/internal/**"  // Endpoints internos para microservicios
                         ).permitAll()
 
                         // Todos los demás endpoints requieren autenticación
