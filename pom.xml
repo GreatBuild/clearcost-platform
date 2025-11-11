@@ -58,6 +58,8 @@
         <module>msvc-users</module>
         <module>msvc-organizations</module>
         <module>msvc-invitations</module>
+        <module>msvc-projects</module>
+        <module>msvc-change</module>
     </modules>
 
     <build>
