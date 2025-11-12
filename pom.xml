@@ -60,6 +60,7 @@
         <module>msvc-invitations</module>
         <module>msvc-projects</module>
         <module>msvc-change</module>
+        <module>api-gateway</module>
     </modules>
 
     <build>
