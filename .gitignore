@@ -22,6 +22,7 @@ Thumbs.db
 # === ¡¡EL MÁS IMPORTANTE: SECRETOS!! ===
 # Ignora el archivo de propiedades que tiene las contraseñas
 application.properties
+.env
 
 # (También es buena idea ignorar los archivos de configuración
 # de IntelliJ que pueden contener datos locales)

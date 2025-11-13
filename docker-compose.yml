@@ -1,0 +1,218 @@
+version: "3.9"
+
+x-common-env: &spring-common-env
+  SPRING_DATASOURCE_USERNAME: root
+  SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+  EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+  EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: clearcost-mysql
+    command: ["mysqld", "--lower_case_table_names=1", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "${MYSQL_PORT}:3306"
+    networks:
+      - clearcost-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: clearcost-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT}:15672"
+    networks:
+      - clearcost-net
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  eureka-server:
+    build:
+      context: .
+      dockerfile: eureka-server/Dockerfile
+    image: clearcost/eureka-server:local
+    container_name: clearcost-eureka
+    ports:
+      - "8761:8761"
+    networks:
+      - clearcost-net
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xms256m -Xmx512m"
+
+  msvc-users:
+    build:
+      context: .
+      dockerfile: msvc-users/Dockerfile
+    image: clearcost/msvc-users:local
+    container_name: clearcost-msvc-users
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    networks:
+      - clearcost-net
+    environment:
+      <<: *spring-common-env
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DB_USERS}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      APP_JWT_SECRET: ${JWT_SHARED_SECRET}
+      APP_JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS}
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_SCOPE: email,profile
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - "8003:8003"
+
+  msvc-organizations:
+    build:
+      context: .
+      dockerfile: msvc-organizations/Dockerfile
+    image: clearcost/msvc-organizations:local
+    container_name: clearcost-msvc-organizations
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - clearcost-net
+    environment:
+      <<: *spring-common-env
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DB_ORGS}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      APP_JWT_SECRET: ${JWT_SHARED_SECRET}
+      APP_JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - "8002:8002"
+
+  msvc-invitations:
+    build:
+      context: .
+      dockerfile: msvc-invitations/Dockerfile
+    image: clearcost/msvc-invitations:local
+    container_name: clearcost-msvc-invitations
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - clearcost-net
+    environment:
+      <<: *spring-common-env
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DB_INVITATIONS}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      APP_JWT_SECRET: ${JWT_SHARED_SECRET}
+      APP_JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - "8004:8004"
+
+  msvc-projects:
+    build:
+      context: .
+      dockerfile: msvc-projects/Dockerfile
+    image: clearcost/msvc-projects:local
+    container_name: clearcost-msvc-projects
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    networks:
+      - clearcost-net
+    environment:
+      <<: *spring-common-env
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DB_PROJECTS}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      APP_JWT_SECRET: ${JWT_SHARED_SECRET}
+      APP_JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS}
+    ports:
+      - "8005:8005"
+
+  msvc-change:
+    build:
+      context: .
+      dockerfile: msvc-change/Dockerfile
+    image: clearcost/msvc-change:local
+    container_name: clearcost-msvc-change
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    networks:
+      - clearcost-net
+    environment:
+      <<: *spring-common-env
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DB_CHANGE}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      JWT_SECRET: ${JWT_SHARED_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION_MS}
+    ports:
+      - "8006:8006"
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    image: clearcost/api-gateway:local
+    container_name: clearcost-api-gateway
+    depends_on:
+      eureka-server:
+        condition: service_started
+      msvc-users:
+        condition: service_started
+      msvc-organizations:
+        condition: service_started
+      msvc-invitations:
+        condition: service_started
+      msvc-projects:
+        condition: service_started
+      msvc-change:
+        condition: service_started
+    networks:
+      - clearcost-net
+    environment:
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      JWT_SECRET: ${JWT_SHARED_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION_MS}
+    ports:
+      - "8080:8080"
+
+networks:
+  clearcost-net:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  rabbitmq-data:
