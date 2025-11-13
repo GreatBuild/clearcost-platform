@@ -18,6 +18,7 @@ public class RouteValidator {
     private static final List<String> PUBLIC_ENDPOINTS = List.of(
             "/api/auth/login",
             "/api/auth/register",
+            "/api/users/internal/**",
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
