@@ -18,17 +18,23 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final CustomOAuth2UserService oauth2UserService;
+    private final OAuth2AuthenticationSuccessHandler oauth2SuccessHandler;
     private final JwtAuthenticationFilter jwtAuthFilter;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final UserDetailsService userDetailsService; // Es tu UserServiceImpl
     private final PasswordEncoder passwordEncoder;     // Es tu BCrypt (de BeansConfig)
 
     // ¡Inyección por Constructor para todas las dependencias de seguridad!
     public SecurityConfig(CustomOAuth2UserService oauth2UserService,
+                          OAuth2AuthenticationSuccessHandler oauth2SuccessHandler,
                           JwtAuthenticationFilter jwtAuthFilter,
+                          JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
                           UserDetailsService userDetailsService,
                           PasswordEncoder passwordEncoder) {
         this.oauth2UserService = oauth2UserService;
+        this.oauth2SuccessHandler = oauth2SuccessHandler;
         this.jwtAuthFilter = jwtAuthFilter;
+        this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
         this.userDetailsService = userDetailsService;
         this.passwordEncoder = passwordEncoder;
     }
@@ -55,11 +61,10 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/register",
-                                "/api/auth/oauth-success", // El callback de Google
-                                "/login/**",               // Flujo interno de Spring Security
+                                "/login/**",               // Flujo interno de Spring Security (OAuth2 callback)
                                 "/api/auth/users/**",      // Endpoints antiguos de usuarios
                                 "/api/users/internal/**",  // Endpoints INTERNOS para comunicación entre microservicios (SIN JWT)
-                                "/oauth2/**",              // Flujo interno de Spring Security
+                                "/oauth2/**",              // Flujo interno de Spring Security (OAuth2 inicio)
                                 "/v3/api-docs/**",         // Swagger JSON
                                 "/swagger-ui/**",          // Swagger UI
                                 "/swagger-ui.html"         // Swagger UI
@@ -69,9 +74,10 @@ public class SecurityConfig {
                         .anyRequest().authenticated() // El resto, protegidos
                 )
 
-                // 2. Sesiones: IF_REQUIRED (necesario para OAuth2, pero JWT sigue siendo stateless)
+                // 2. Sesiones: STATELESS para peticiones JWT
+                // OAuth2 login crea su propia sesión temporal durante el flujo, luego JWT toma control
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
                 // 3. Configuración de OAuth2 (Login con Google)
@@ -79,10 +85,15 @@ public class SecurityConfig {
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(oauth2UserService)
                         )
-                        .defaultSuccessUrl("/api/auth/oauth-success", true)
+                        .successHandler(oauth2SuccessHandler)
                 )
 
-                // 4. ¡¡AÑADIMOS NUESTRO FILTRO JWT!!
+                // 4. Configurar entry point para errores de autenticación
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                )
+
+                // 5. ¡¡AÑADIMOS NUESTRO FILTRO JWT!!
                 // Le decimos a Spring: "Antes de cada petición, pasa por este filtro"
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
