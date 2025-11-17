@@ -19,6 +19,7 @@ public class RouteValidator {
             "/api/auth/login",
             "/api/auth/register",
             "/api/auth/me",
+            "/api/auth/select-role",
             "oauth2/authorization/google",
             "/api/users/internal/**",
             "/v3/api-docs/**",
