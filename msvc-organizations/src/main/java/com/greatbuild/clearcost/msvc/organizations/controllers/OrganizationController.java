@@ -101,37 +101,52 @@ public class OrganizationController {
     }
 
     /**
-     * Actualiza una organización
+     * Actualiza una organización (ACTUALIZACIÓN PARCIAL)
      * Solo ROLE_WORKER puede actualizar (debe ser el CONTRACTOR de la organización)
-     * TODO: Verificar que el usuario sea el CONTRACTOR (ownerId) de la organización
+     * Los campos no enviados (null) no se actualizan
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('WORKER')")
     @Operation(summary = "Actualizar organización",
-            description = "Actualiza la información de una organización. Solo el CONTRACTOR (owner) puede actualizar su organización.")
+            description = "Actualiza la información de una organización (parcial). Solo actualiza los campos enviados. Solo el CONTRACTOR (owner) puede actualizar su organización.")
     public ResponseEntity<?> update(
             @PathVariable("id") Long id,
-            @Valid @RequestBody CreateOrganizationDTO dto,
+            @RequestBody com.greatbuild.clearcost.msvc.organizations.models.dtos.UpdateOrganizationDTO dto,
             Authentication authentication) {
-        log.info("Usuario {} (ROLE_WORKER) actualizando organización {}", authentication.getName(), id);
-        Optional<Organization> existing = service.findById(id);
-        if (existing.isEmpty()) {
-            return ResponseEntity.notFound().build();
+        try {
+            Long userId = Long.parseLong(authentication.getName());
+            
+            Optional<Organization> existing = service.findById(id);
+            if (existing.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Organization organization = existing.get();
+            
+            // Verificar que el usuario autenticado sea el CONTRACTOR (ownerId) de la organización
+            if (!organization.getOwnerId().equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(java.util.Map.of("error", "Solo el CONTRACTOR puede actualizar la organización"));
+            }
+
+            // ACTUALIZACIÓN PARCIAL: Solo actualizar campos no nulos
+            if (dto.getLegalName() != null) {
+                organization.setLegalName(dto.getLegalName());
+            }
+            if (dto.getCommercialName() != null) {
+                organization.setCommercialName(dto.getCommercialName());
+            }
+            if (dto.getRuc() != null) {
+                organization.setRuc(dto.getRuc());
+            }
+
+            Organization updated = service.save(organization);
+            return ResponseEntity.ok(toResponseDTO(updated));
+        } catch (NumberFormatException e) {
+            log.error("Error al parsear userId del JWT: {}", authentication.getName());
+            return ResponseEntity.badRequest()
+                    .body(java.util.Map.of("error", "Token JWT inválido"));
         }
-        // TODO: Verificar que el usuario autenticado sea el ownerId de la organización
-        // if (!existing.get().getOwnerId().equals(userIdFromAuthentication)) {
-        //     return ResponseEntity.status(HttpStatus.FORBIDDEN)
-        //         .body(Map.of("error", "Solo el CONTRACTOR puede actualizar la organización"));
-        // }
-
-        Organization organization = existing.get();
-        organization.setLegalName(dto.getLegalName());
-        organization.setCommercialName(dto.getCommercialName());
-        organization.setRuc(dto.getRuc());
-        organization.setOwnerId(dto.getOwnerId());
-
-        Organization updated = service.save(organization);
-        return ResponseEntity.ok(toResponseDTO(updated));
     }
 
     /**
