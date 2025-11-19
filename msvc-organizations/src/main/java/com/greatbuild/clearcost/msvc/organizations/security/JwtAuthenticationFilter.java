@@ -70,7 +70,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (!jwtService.isTokenValid(jwt)) {
                 log.warn("Token JWT inválido o expirado");
                 SecurityContextHolder.clearContext();
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token JWT inválido o expirado");
+                filterChain.doFilter(request, response);
                 return;
             }
 
@@ -101,7 +101,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             log.error("Error al procesar el token JWT: {}", e.getMessage(), e);
             SecurityContextHolder.clearContext();
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token JWT inválido");
+            filterChain.doFilter(request, response);
         }
     }
 }
