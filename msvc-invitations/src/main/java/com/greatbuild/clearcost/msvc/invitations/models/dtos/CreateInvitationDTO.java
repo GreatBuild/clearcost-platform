@@ -1,6 +1,7 @@
 package com.greatbuild.clearcost.msvc.invitations.models.dtos;
 
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 public class CreateInvitationDTO {
@@ -8,11 +9,12 @@ public class CreateInvitationDTO {
     @NotNull(message = "El ID de la organización es obligatorio")
     private Long organizationId;
 
-    @NotNull(message = "El ID del usuario invitado es obligatorio")
-    private Long inviteeUserId;
-
+    @NotEmpty(message = "El email del usuario invitado es obligatorio")
     @Email(message = "El email debe ser válido")
     private String inviteeEmail;
+
+    // Campo opcional - se buscará automáticamente por email si no se proporciona
+    private Long inviteeUserId;
 
     // Getters y Setters
     public Long getOrganizationId() {

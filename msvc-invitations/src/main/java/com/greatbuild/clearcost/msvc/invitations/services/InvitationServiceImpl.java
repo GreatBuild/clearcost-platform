@@ -55,25 +55,26 @@ public class InvitationServiceImpl implements InvitationService {
             throw new RuntimeException("Solo el creador de la organización puede enviar invitaciones");
         }
 
-        // 3. Verificar que el usuario invitado existe y tiene el rol correcto
+        // 3. Buscar el usuario invitado por email
         UserDTO invitee;
         try {
-            invitee = userFeignClient.getUserById(dto.getInviteeUserId());
+            invitee = userFeignClient.getUserByEmail(dto.getInviteeEmail());
+            log.info("Usuario encontrado por email {}: ID {}", dto.getInviteeEmail(), invitee.getId());
         } catch (Exception e) {
-            log.error("Error al obtener usuario invitado {}: {} - {}", 
-                dto.getInviteeUserId(), e.getClass().getSimpleName(), e.getMessage());
-            throw new RuntimeException("El usuario invitado no existe");
+            log.error("Error al obtener usuario por email {}: {} - {}", 
+                dto.getInviteeEmail(), e.getClass().getSimpleName(), e.getMessage());
+            throw new RuntimeException("No se encontró un usuario con el email: " + dto.getInviteeEmail());
         }
 
         // 4. Validar que el usuario invitado tiene el rol ROLE_WORKER
         if (!invitee.hasRole("ROLE_WORKER")) {
-            throw new RuntimeException("Solo se pueden invitar usuarios con rol ROLE_WORKER");
+            throw new RuntimeException("Solo se pueden invitar usuarios con rol ROLE_WORKER. El usuario " + dto.getInviteeEmail() + " tiene otro rol.");
         }
 
         // 5. Verificar que no existe una invitación PENDIENTE previa
         repository.findByOrganizationIdAndInviteeUserIdAndStatus(
                 dto.getOrganizationId(),
-                dto.getInviteeUserId(),
+                invitee.getId(),
                 InvitationStatus.PENDING
         ).ifPresent(existing -> {
             throw new RuntimeException("Ya existe una invitación pendiente para este usuario en esta organización");
@@ -83,8 +84,8 @@ public class InvitationServiceImpl implements InvitationService {
         Invitation invitation = new Invitation();
         invitation.setOrganizationId(dto.getOrganizationId());
         invitation.setInviterId(inviterId);
-        invitation.setInviteeUserId(dto.getInviteeUserId());
-        invitation.setInviteeEmail(dto.getInviteeEmail() != null ? dto.getInviteeEmail() : invitee.getEmail());
+        invitation.setInviteeUserId(invitee.getId()); // Usar el ID del usuario encontrado por email
+        invitation.setInviteeEmail(invitee.getEmail()); // Usar el email del usuario encontrado
 
         invitation = repository.save(invitation);
 
