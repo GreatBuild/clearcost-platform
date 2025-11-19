@@ -74,7 +74,7 @@ public class OrganizationController {
      * ROLE_CLIENT NO puede crear organizaciones
      */
     @PostMapping
-    @PreAuthorize("hasRole('WORKER')")
+    @PreAuthorize("hasRole('ROLE_WORKER')")
     @Operation(summary = "Crear nueva organización", 
                description = "Crea una nueva organización. Solo usuarios con ROLE_WORKER pueden crear organizaciones. El usuario se convierte en CONTRACTOR (dueño) de la organización. La organización comienza sin miembros.")
     public ResponseEntity<?> create(@Valid @RequestBody CreateOrganizationDTO dto, Authentication authentication) {

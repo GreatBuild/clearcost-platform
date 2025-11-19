@@ -1,6 +1,8 @@
 package com.greatbuild.clearcost.msvc.projects.models.dtos;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
@@ -21,8 +23,9 @@ public class CreateProjectDTO {
     @NotNull(message = "El ID de la organización es obligatorio")
     private Long organizationId;
 
-    @NotNull(message = "El ID de la entidad contratante es obligatorio")
-    private Long contractingEntityId;
+    @NotEmpty(message = "El correo de la entidad contratante es obligatorio")
+    @Email(message = "El correo de la entidad contratante debe ser válido")
+    private String contractingEntityEmail;
 
     // Constructors
     public CreateProjectDTO() {
@@ -61,11 +64,11 @@ public class CreateProjectDTO {
         this.organizationId = organizationId;
     }
 
-    public Long getContractingEntityId() {
-        return contractingEntityId;
+    public String getContractingEntityEmail() {
+        return contractingEntityEmail;
     }
 
-    public void setContractingEntityId(Long contractingEntityId) {
-        this.contractingEntityId = contractingEntityId;
+    public void setContractingEntityEmail(String contractingEntityEmail) {
+        this.contractingEntityEmail = contractingEntityEmail;
     }
 }

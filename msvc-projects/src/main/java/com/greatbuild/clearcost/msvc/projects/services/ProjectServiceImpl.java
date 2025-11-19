@@ -57,11 +57,11 @@ public class ProjectServiceImpl implements ProjectService {
         // 3. Validar que el contractingEntity existe y tiene rol ROLE_CLIENT
         UserDTO contractingEntity;
         try {
-            contractingEntity = userClient.getUserById(dto.getContractingEntityId());
+            contractingEntity = userClient.getUserByEmail(dto.getContractingEntityEmail());
         } catch (FeignException.NotFound e) {
-            throw new IllegalArgumentException("El usuario con ID " + dto.getContractingEntityId() + " no existe");
+            throw new IllegalArgumentException("El usuario con email " + dto.getContractingEntityEmail() + " no existe");
         } catch (Exception e) {
-            log.error("Error al validar contractingEntity {}: {}", dto.getContractingEntityId(), e.getMessage());
+            log.error("Error al validar contractingEntity {}: {}", dto.getContractingEntityEmail(), e.getMessage());
             throw new IllegalStateException("Error de comunicación con el servicio de usuarios");
         }
 
@@ -75,7 +75,7 @@ public class ProjectServiceImpl implements ProjectService {
         project.setStartDate(LocalDate.now());
         project.setEndDate(dto.getEndDate());
         project.setOrganizationId(dto.getOrganizationId());
-        project.setContractingEntityId(dto.getContractingEntityId());
+        project.setContractingEntityId(contractingEntity.getId());
         project.setStatus(ProjectStatus.BASIC_STUDIES);
 
         // 5. Guardar el proyecto
