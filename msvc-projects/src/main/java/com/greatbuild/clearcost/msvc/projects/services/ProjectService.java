@@ -3,6 +3,7 @@ package com.greatbuild.clearcost.msvc.projects.services;
 import com.greatbuild.clearcost.msvc.projects.models.dtos.AddProjectMemberDTO;
 import com.greatbuild.clearcost.msvc.projects.models.dtos.CreateProjectDTO;
 import com.greatbuild.clearcost.msvc.projects.models.dtos.ProjectMemberResponseDTO;
+import com.greatbuild.clearcost.msvc.projects.models.dtos.UpdateProjectDTO;
 import com.greatbuild.clearcost.msvc.projects.models.entities.Project;
 import com.greatbuild.clearcost.msvc.projects.models.enums.ProjectStatus;
 
@@ -25,7 +26,7 @@ public interface ProjectService {
     /**
      * Actualiza un proyecto
      */
-    Project updateProject(Long id, CreateProjectDTO dto);
+    Project updateProject(Long id, UpdateProjectDTO dto);
     
     /**
      * Elimina un proyecto

@@ -1,6 +1,11 @@
 package com.greatbuild.clearcost.msvc.projects.controllers;
 
-import com.greatbuild.clearcost.msvc.projects.models.dtos.*;
+import com.greatbuild.clearcost.msvc.projects.models.dtos.AddProjectMemberDTO;
+import com.greatbuild.clearcost.msvc.projects.models.dtos.CreateProjectDTO;
+import com.greatbuild.clearcost.msvc.projects.models.dtos.ProjectMemberResponseDTO;
+import com.greatbuild.clearcost.msvc.projects.models.dtos.ProjectResponseDTO;
+import com.greatbuild.clearcost.msvc.projects.models.dtos.UpdateProjectDTO;
+import com.greatbuild.clearcost.msvc.projects.models.dtos.UpdateProjectStatusDTO;
 import com.greatbuild.clearcost.msvc.projects.models.entities.Project;
 import com.greatbuild.clearcost.msvc.projects.services.ProjectService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -89,10 +94,10 @@ public class ProjectController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('WORKER')")
     @Operation(summary = "Actualizar proyecto",
-               description = "Actualiza la información de un proyecto. Solo COORDINATOR puede actualizar.")
+               description = "Actualiza la información de un proyecto (parcial). Solo COORDINATOR puede actualizar. Campos opcionales: projectName, description, endDate, contractingEntityEmail.")
     public ResponseEntity<?> updateProject(
             @PathVariable("id") Long id,
-            @Valid @RequestBody CreateProjectDTO dto,
+            @Valid @RequestBody UpdateProjectDTO dto,
             Authentication authentication) {
         try {
             Project project = service.updateProject(id, dto);
