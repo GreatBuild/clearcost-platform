@@ -5,7 +5,6 @@ import com.greatbuild.clearcost.msvc.projects.models.dtos.CreateProjectDTO;
 import com.greatbuild.clearcost.msvc.projects.models.dtos.ProjectMemberResponseDTO;
 import com.greatbuild.clearcost.msvc.projects.models.dtos.ProjectResponseDTO;
 import com.greatbuild.clearcost.msvc.projects.models.dtos.UpdateProjectDTO;
-import com.greatbuild.clearcost.msvc.projects.models.dtos.UpdateProjectStatusDTO;
 import com.greatbuild.clearcost.msvc.projects.models.entities.Project;
 import com.greatbuild.clearcost.msvc.projects.services.ProjectService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -94,7 +93,7 @@ public class ProjectController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('WORKER')")
     @Operation(summary = "Actualizar proyecto",
-               description = "Actualiza la información de un proyecto (parcial). Solo COORDINATOR puede actualizar. Campos opcionales: projectName, description, endDate, contractingEntityEmail.")
+               description = "Actualiza la información de un proyecto (parcial). Solo COORDINATOR puede actualizar. Campos opcionales: projectName, description, endDate, contractingEntityEmail, status.")
     public ResponseEntity<?> updateProject(
             @PathVariable("id") Long id,
             @Valid @RequestBody UpdateProjectDTO dto,
@@ -123,27 +122,6 @@ public class ProjectController {
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             log.warn("Error al eliminar proyecto: {}", e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(java.util.Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
-     * Actualiza el status de un proyecto
-     * Solo COORDINATOR puede cambiar el status
-     */
-    @PutMapping("/{id}/status")
-    @PreAuthorize("hasRole('WORKER')")
-    @Operation(summary = "Actualizar status del proyecto",
-               description = "Cambia el estado del proyecto. Solo COORDINATOR puede cambiar el status.")
-    public ResponseEntity<?> updateStatus(
-            @PathVariable("id") Long id,
-            @Valid @RequestBody UpdateProjectStatusDTO dto) {
-        try {
-            Project project = service.updateStatus(id, dto.getStatus());
-            return ResponseEntity.ok(toResponseDTO(project));
-        } catch (IllegalArgumentException e) {
-            log.warn("Error al actualizar status: {}", e.getMessage());
             return ResponseEntity.badRequest()
                     .body(java.util.Map.of("error", e.getMessage()));
         }

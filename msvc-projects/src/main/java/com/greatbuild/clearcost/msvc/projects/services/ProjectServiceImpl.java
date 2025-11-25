@@ -143,6 +143,11 @@ public class ProjectServiceImpl implements ProjectService {
             }
         }
 
+        if (dto.getStatus() != null) {
+            project.setStatus(dto.getStatus());
+            hasChanges = true;
+        }
+
         if (!hasChanges) {
             throw new IllegalArgumentException("Debe enviar al menos un campo para actualizar el proyecto");
         }
@@ -157,16 +162,6 @@ public class ProjectServiceImpl implements ProjectService {
             throw new IllegalArgumentException("Proyecto no encontrado con ID: " + id);
         }
         repository.deleteById(id);
-    }
-
-    @Override
-    @Transactional
-    public Project updateStatus(Long id, ProjectStatus status) {
-        Project project = repository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Proyecto no encontrado con ID: " + id));
-
-        project.setStatus(status);
-        return repository.save(project);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.greatbuild.clearcost.msvc.projects.models.dtos;
 
+import com.greatbuild.clearcost.msvc.projects.models.enums.ProjectStatus;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 
@@ -20,6 +21,8 @@ public class UpdateProjectDTO {
 
     @Email(message = "El correo de la entidad contratante debe ser válido")
     private String contractingEntityEmail;
+
+    private ProjectStatus status;
 
     public UpdateProjectDTO() {
     }
@@ -54,5 +57,13 @@ public class UpdateProjectDTO {
 
     public void setContractingEntityEmail(String contractingEntityEmail) {
         this.contractingEntityEmail = contractingEntityEmail;
+    }
+
+    public ProjectStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(ProjectStatus status) {
+        this.status = status;
     }
 }
