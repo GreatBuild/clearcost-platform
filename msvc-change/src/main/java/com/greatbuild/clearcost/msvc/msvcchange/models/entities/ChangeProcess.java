@@ -20,6 +20,9 @@ public class ChangeProcess {
     @Column(nullable = false)
     private Long createdBy;
 
+    @Column(nullable = false, length = 200)
+    private String title;
+
     @Column(nullable = false, length = 50)
     private String origin;  // CHANGE_REQUEST o TECHNICAL_QUERY
 
@@ -64,6 +67,14 @@ public class ChangeProcess {
 
     public void setCreatedBy(Long createdBy) {
         this.createdBy = createdBy;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
     }
 
     public String getOrigin() {
