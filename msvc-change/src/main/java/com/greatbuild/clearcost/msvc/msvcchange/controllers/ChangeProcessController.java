@@ -146,6 +146,7 @@ public class ChangeProcessController {
 
         return new ChangeProcessResponseDTO(
                 cp.getId(),
+                cp.getTitle(),
                 cp.getOrigin(),
                 statusName,
                 cp.getJustification(),

@@ -27,17 +27,22 @@ public class JwtService {
         this.jwtExpirationMs = jwtProperties.getExpirationMs();
     }
 
-    // Extrae el email (subject) del token
+    // Extrae el email del token (para tokens OAuth2, está en el claim "email")
     public String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
+        Claims claims = extractAllClaims(token);
+        String email = claims.get("email", String.class);
+        return (email != null) ? email : claims.getSubject();
     }
 
-    // Extrae el userId del token (está en el subject como String)
+    // Extrae el userId del token (está en el subject como String para tokens OAuth2)
     public Long extractUserId(String token) {
         String subject = extractClaim(token, Claims::getSubject);
         try {
+            // Para tokens OAuth2, el subject es el userId
             return Long.parseLong(subject);
         } catch (NumberFormatException e) {
+            // Para tokens antiguos, el subject puede ser el email
+            // En ese caso, no podemos extraer el userId directamente
             throw new IllegalArgumentException("userId no encontrado o inválido en el subject del token JWT: " + subject);
         }
     }

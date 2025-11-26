@@ -3,8 +3,8 @@ package com.greatbuild.clearcost.msvc.projects.services;
 import com.greatbuild.clearcost.msvc.projects.models.dtos.AddProjectMemberDTO;
 import com.greatbuild.clearcost.msvc.projects.models.dtos.CreateProjectDTO;
 import com.greatbuild.clearcost.msvc.projects.models.dtos.ProjectMemberResponseDTO;
+import com.greatbuild.clearcost.msvc.projects.models.dtos.UpdateProjectDTO;
 import com.greatbuild.clearcost.msvc.projects.models.entities.Project;
-import com.greatbuild.clearcost.msvc.projects.models.enums.ProjectStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,17 +25,12 @@ public interface ProjectService {
     /**
      * Actualiza un proyecto
      */
-    Project updateProject(Long id, CreateProjectDTO dto);
+    Project updateProject(Long id, UpdateProjectDTO dto);
     
     /**
      * Elimina un proyecto
      */
     void deleteProject(Long id);
-    
-    /**
-     * Actualiza el status de un proyecto
-     */
-    Project updateStatus(Long id, ProjectStatus status);
     
     /**
      * Obtiene proyectos de una organización según el rol del usuario

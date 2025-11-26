@@ -9,18 +9,6 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOrigins(
-                        "http://localhost:3000",  // React/Next.js frontend
-                        "http://localhost:5173",  // Vite frontend
-                        "http://localhost:4200",   // Angular frontend
-                        "http://localhost:15672",
-                        "http://localhost:5672"
-                )
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
-                .allowedHeaders("*")
-                .allowCredentials(true)
-                .maxAge(3600);
     }
 }
 

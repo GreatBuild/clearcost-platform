@@ -1,37 +1,32 @@
 package com.greatbuild.clearcost.msvc.projects.models.dtos;
 
+import com.greatbuild.clearcost.msvc.projects.models.enums.ProjectStatus;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
 /**
- * DTO para crear un proyecto
+ * DTO para actualización parcial de un proyecto.
+ * Todos los campos son opcionales; solo se modifican los enviados.
  */
-public class CreateProjectDTO {
+public class UpdateProjectDTO {
 
-    @NotBlank(message = "El nombre del proyecto es obligatorio")
+    @Size(min = 1, message = "El nombre del proyecto no puede estar vacío")
     private String projectName;
 
     private String description;
 
-    @NotNull(message = "La fecha de finalización es obligatoria")
     private LocalDate endDate;
 
-    @NotNull(message = "El ID de la organización es obligatorio")
-    private Long organizationId;
-
-    @NotEmpty(message = "El correo de la entidad contratante es obligatorio")
     @Email(message = "El correo de la entidad contratante debe ser válido")
     private String contractingEntityEmail;
 
-    // Constructors
-    public CreateProjectDTO() {
+    private ProjectStatus status;
+
+    public UpdateProjectDTO() {
     }
 
-    // Getters and Setters
     public String getProjectName() {
         return projectName;
     }
@@ -56,19 +51,19 @@ public class CreateProjectDTO {
         this.endDate = endDate;
     }
 
-    public Long getOrganizationId() {
-        return organizationId;
-    }
-
-    public void setOrganizationId(Long organizationId) {
-        this.organizationId = organizationId;
-    }
-
     public String getContractingEntityEmail() {
         return contractingEntityEmail;
     }
 
     public void setContractingEntityEmail(String contractingEntityEmail) {
         this.contractingEntityEmail = contractingEntityEmail;
+    }
+
+    public ProjectStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(ProjectStatus status) {
+        this.status = status;
     }
 }

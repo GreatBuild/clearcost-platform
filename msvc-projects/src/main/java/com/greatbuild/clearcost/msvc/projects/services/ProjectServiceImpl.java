@@ -2,7 +2,13 @@ package com.greatbuild.clearcost.msvc.projects.services;
 
 import com.greatbuild.clearcost.msvc.projects.clients.OrganizationFeignClient;
 import com.greatbuild.clearcost.msvc.projects.clients.UserFeignClient;
-import com.greatbuild.clearcost.msvc.projects.models.dtos.*;
+import com.greatbuild.clearcost.msvc.projects.models.dtos.AddProjectMemberDTO;
+import com.greatbuild.clearcost.msvc.projects.models.dtos.CreateProjectDTO;
+import com.greatbuild.clearcost.msvc.projects.models.dtos.OrganizationDTO;
+import com.greatbuild.clearcost.msvc.projects.models.dtos.OrganizationMemberDTO;
+import com.greatbuild.clearcost.msvc.projects.models.dtos.ProjectMemberResponseDTO;
+import com.greatbuild.clearcost.msvc.projects.models.dtos.UpdateProjectDTO;
+import com.greatbuild.clearcost.msvc.projects.models.dtos.UserDTO;
 import com.greatbuild.clearcost.msvc.projects.models.entities.Project;
 import com.greatbuild.clearcost.msvc.projects.models.entities.ProjectMember;
 import com.greatbuild.clearcost.msvc.projects.models.enums.ProjectRole;
@@ -57,11 +63,11 @@ public class ProjectServiceImpl implements ProjectService {
         // 3. Validar que el contractingEntity existe y tiene rol ROLE_CLIENT
         UserDTO contractingEntity;
         try {
-            contractingEntity = userClient.getUserById(dto.getContractingEntityId());
+            contractingEntity = userClient.getUserByEmail(dto.getContractingEntityEmail());
         } catch (FeignException.NotFound e) {
-            throw new IllegalArgumentException("El usuario con ID " + dto.getContractingEntityId() + " no existe");
+            throw new IllegalArgumentException("El usuario con email " + dto.getContractingEntityEmail() + " no existe");
         } catch (Exception e) {
-            log.error("Error al validar contractingEntity {}: {}", dto.getContractingEntityId(), e.getMessage());
+            log.error("Error al validar contractingEntity {}: {}", dto.getContractingEntityEmail(), e.getMessage());
             throw new IllegalStateException("Error de comunicación con el servicio de usuarios");
         }
 
@@ -75,7 +81,7 @@ public class ProjectServiceImpl implements ProjectService {
         project.setStartDate(LocalDate.now());
         project.setEndDate(dto.getEndDate());
         project.setOrganizationId(dto.getOrganizationId());
-        project.setContractingEntityId(dto.getContractingEntityId());
+        project.setContractingEntityId(contractingEntity.getId());
         project.setStatus(ProjectStatus.BASIC_STUDIES);
 
         // 5. Guardar el proyecto
@@ -103,14 +109,48 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     @Transactional
-    public Project updateProject(Long id, CreateProjectDTO dto) {
+    public Project updateProject(Long id, UpdateProjectDTO dto) {
         Project project = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Proyecto no encontrado con ID: " + id));
 
-        project.setProjectName(dto.getProjectName());
-        project.setDescription(dto.getDescription());
-        project.setEndDate(dto.getEndDate());
-        // No permitimos cambiar organizationId ni contractingEntityId
+        boolean hasChanges = false;
+
+        if (dto.getProjectName() != null) {
+            project.setProjectName(dto.getProjectName());
+            hasChanges = true;
+        }
+
+        if (dto.getDescription() != null) {
+            project.setDescription(dto.getDescription());
+            hasChanges = true;
+        }
+
+        if (dto.getEndDate() != null) {
+            project.setEndDate(dto.getEndDate());
+            hasChanges = true;
+        }
+
+        if (dto.getContractingEntityEmail() != null) {
+            try {
+                UserDTO contractingEntity = userClient.getUserByEmail(dto.getContractingEntityEmail());
+                project.setContractingEntityId(contractingEntity.getId());
+                hasChanges = true;
+            } catch (FeignException.NotFound e) {
+                throw new IllegalArgumentException("El usuario con email " + dto.getContractingEntityEmail() + " no existe");
+            } catch (Exception e) {
+                log.error("Error al validar contractingEntity {}: {}", dto.getContractingEntityEmail(), e.getMessage());
+                throw new IllegalStateException("Error de comunicación con el servicio de usuarios");
+            }
+        }
+
+        if (dto.getStatus() != null) {
+            project.setStatus(dto.getStatus());
+            hasChanges = true;
+        }
+
+        if (!hasChanges) {
+            throw new IllegalArgumentException("Debe enviar al menos un campo para actualizar el proyecto");
+        }
 
         return repository.save(project);
     }
@@ -122,16 +162,6 @@ public class ProjectServiceImpl implements ProjectService {
             throw new IllegalArgumentException("Proyecto no encontrado con ID: " + id);
         }
         repository.deleteById(id);
-    }
-
-    @Override
-    @Transactional
-    public Project updateStatus(Long id, ProjectStatus status) {
-        Project project = repository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Proyecto no encontrado con ID: " + id));
-
-        project.setStatus(status);
-        return repository.save(project);
     }
 
     @Override

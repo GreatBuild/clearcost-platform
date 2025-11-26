@@ -11,6 +11,9 @@ public class CreateChangeProcessDTO {
     @NotNull(message = "El projectId es obligatorio")
     private Long projectId;
 
+    @NotBlank(message = "El título es obligatorio")
+    private String title;
+
     @NotBlank(message = "La justification es obligatoria")
     private String justification;
 
@@ -25,6 +28,14 @@ public class CreateChangeProcessDTO {
 
     public void setProjectId(Long projectId) {
         this.projectId = projectId;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
     }
 
     public String getJustification() {

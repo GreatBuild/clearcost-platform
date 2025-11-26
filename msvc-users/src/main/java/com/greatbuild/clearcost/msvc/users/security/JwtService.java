@@ -72,7 +72,11 @@ public class JwtService {
 
     // Extrae el email del token
     public String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
+        // Si el token tiene el claim "email", lo usamos (tokens OAuth2)
+        // Si no, usamos el subject (tokens de login local antiguo)
+        Claims claims = extractAllClaims(token);
+        String email = claims.get("email", String.class);
+        return (email != null) ? email : claims.getSubject();
     }
 
     // Extrae los roles del token

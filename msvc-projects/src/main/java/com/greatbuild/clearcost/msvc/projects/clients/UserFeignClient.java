@@ -17,4 +17,11 @@ public interface UserFeignClient {
      */
     @GetMapping("/api/users/internal/{id}")
     UserDTO getUserById(@PathVariable("id") Long id);
+
+    /**
+     * Obtiene información de un usuario por su email
+     * Endpoint INTERNO en msvc-users: GET /api/users/internal/email/{email}
+     */
+    @GetMapping("/api/users/internal/email/{email}")
+    UserDTO getUserByEmail(@PathVariable("email") String email);
 }

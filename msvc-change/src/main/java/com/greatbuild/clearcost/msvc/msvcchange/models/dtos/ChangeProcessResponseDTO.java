@@ -6,6 +6,7 @@ package com.greatbuild.clearcost.msvc.msvcchange.models.dtos;
 public class ChangeProcessResponseDTO {
 
     private Long id;
+    private String title;
     private String origin;
     private String status;
     private String justification;
@@ -16,9 +17,10 @@ public class ChangeProcessResponseDTO {
     public ChangeProcessResponseDTO() {
     }
 
-    public ChangeProcessResponseDTO(Long id, String origin, String status, 
+    public ChangeProcessResponseDTO(Long id, String title, String origin, String status,
                                    String justification, String response, Long projectId) {
         this.id = id;
+        this.title = title;
         this.origin = origin;
         this.status = status;
         this.justification = justification;
@@ -33,6 +35,14 @@ public class ChangeProcessResponseDTO {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
     }
 
     public String getOrigin() {

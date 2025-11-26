@@ -4,7 +4,6 @@ import com.greatbuild.clearcost.msvc.users.models.dtos.AuthResponseDTO;
 import com.greatbuild.clearcost.msvc.users.models.dtos.LoginRequestDTO;
 import com.greatbuild.clearcost.msvc.users.models.dtos.RegisterRequestDTO;
 import com.greatbuild.clearcost.msvc.users.models.dtos.RoleSelectionDTO;
-import com.greatbuild.clearcost.msvc.users.models.entities.Role;
 import com.greatbuild.clearcost.msvc.users.models.entities.User;
 import com.greatbuild.clearcost.msvc.users.security.JwtService;
 import com.greatbuild.clearcost.msvc.users.services.UserService;
@@ -18,15 +17,12 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -89,18 +85,29 @@ public class AuthController {
         }
     }
 
+    /* 
+     * NOTA: Este endpoint ya no es usado por el flujo OAuth2.
+     * El handler OAuth2AuthenticationSuccessHandler redirige directamente al frontend.
+     * Se mantiene comentado por si se necesita en el futuro para debugging.
+     * 
     // --- Endpoint PÚBLICO: Callback de Google ---
     @GetMapping("/oauth-success")
     public ResponseEntity<?> oauthSuccess(Authentication authentication) {
         if (authentication == null || authentication instanceof AnonymousAuthenticationToken) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Error en el login de OAuth2. El usuario está anónimo."));
+            // Redirigir al frontend con error
+            String errorUrl = "http://localhost:4200/auth/callback?error=unauthorized";
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header("Location", errorUrl)
+                    .build();
         }
 
         String email = getEmailFromAuthentication(authentication);
         if (email == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "No se pudo obtener el email del token"));
+            // Redirigir al frontend con error
+            String errorUrl = "http://localhost:4200/auth/callback?error=no_email";
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header("Location", errorUrl)
+                    .build();
         }
 
         // Buscamos el usuario en la BD
@@ -123,24 +130,17 @@ public class AuthController {
         // Generamos el JWT con userId
         String jwt = jwtService.generateToken(user.getId(), jwtAuthentication);
 
-        // Respondemos según si necesita o no seleccionar rol
-        Map<String, Object> response = new HashMap<>();
-        response.put("accessToken", jwt);
-        response.put("tokenType", "Bearer");
-        response.put("email", user.getEmail());
-        response.put("needsRoleSelection", needsRoleSelection);
-        
-        if (needsRoleSelection) {
-            response.put("message", "Debes seleccionar un rol antes de continuar");
-        } else {
-            response.put("message", "Login exitoso");
-            response.put("roles", user.getRoles().stream()
-                    .map(Role::getName)
-                    .collect(Collectors.toList()));
-        }
+        // Redirigir al frontend con el token y parámetros necesarios
+        String frontendUrl = "http://localhost:4200/auth/callback" +
+                "?token=" + jwt +
+                "&email=" + user.getEmail() +
+                "&needsRoleSelection=" + needsRoleSelection;
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .header("Location", frontendUrl)
+                .build();
     }
+    */
 
     // --- Endpoint PRIVADO: Selección de Rol ---
     @PostMapping("/select-role")

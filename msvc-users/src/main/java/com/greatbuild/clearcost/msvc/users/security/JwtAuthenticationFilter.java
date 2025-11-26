@@ -84,11 +84,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
             filterChain.doFilter(request, response);
         } catch (Exception e) {
-            log.warn("Error al procesar el token JWT: {}", e.getMessage());
+            log.error("Error al procesar el token JWT: {}", e.getMessage(), e);
             // Si el token es inválido (expirado, firma incorrecta),
-            // limpiamos el contexto y dejamos que la petición falle
+            // limpiamos el contexto y continuamos sin autenticación
+            // Esto permite que Spring Security maneje el error adecuadamente
             SecurityContextHolder.clearContext();
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token JWT inválido o expirado");
+            filterChain.doFilter(request, response);
         }
     }
 }

@@ -60,6 +60,7 @@ public class ChangeProcessServiceImpl implements ChangeProcessService {
         ChangeProcess changeProcess = new ChangeProcess();
         changeProcess.setProjectId(dto.getProjectId());
         changeProcess.setCreatedBy(userId);
+        changeProcess.setTitle(dto.getTitle());
         changeProcess.setOrigin(ChangeProcessOrigin.CHANGE_REQUEST.getValue());
         changeProcess.setStatusId(ChangeProcessStatus.PENDING.getId());
         changeProcess.setJustification(dto.getJustification());
