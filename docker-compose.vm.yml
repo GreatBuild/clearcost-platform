@@ -4,7 +4,8 @@ x-common-env: &spring-common-env
   SPRING_DATASOURCE_USERNAME: root
   SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
   EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
-  EUREKA_INSTANCE_PREFER_IP_ADDRESS: "false"
+  EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+  EUREKA_INSTANCE_IP_ADDRESS: ${EUREKA_INSTANCE_IP_ADDRESS}
 
 services:
   mysql:
@@ -17,7 +18,7 @@ services:
       - mysql-data:/var/lib/mysql
       - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
-      - "${MYSQL_PORT}:3306"
+      - "${MYSQL_PORT}:3307"
     networks:
       - clearcost-net
     healthcheck:
@@ -78,7 +79,7 @@ services:
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_SCOPE: email,profile
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_REDIRECT_URI: http://localhost:8080/login/oauth2/code/google
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_REDIRECT_URI: https://clearcost-gateway-prod-fkenahfegsfnbter.eastus2-01.azurewebsites.net/login/oauth2/code/google
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER}
