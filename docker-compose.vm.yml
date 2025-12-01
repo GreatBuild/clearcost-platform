@@ -46,9 +46,6 @@ services:
       retries: 5
 
   eureka-server:
-    build:
-      context: .
-      dockerfile: eureka-server/Dockerfile
     image: codylionvivo/eureka-server:latest
     container_name: clearcost-eureka
     ports:
@@ -59,9 +56,6 @@ services:
       JAVA_TOOL_OPTIONS: "-Xms256m -Xmx512m"
 
   msvc-users:
-    build:
-      context: .
-      dockerfile: msvc-users/Dockerfile
     image: codylionvivo/msvc-users:latest
     container_name: clearcost-msvc-users
     depends_on:
@@ -88,9 +82,6 @@ services:
       - "8003:8003"
 
   msvc-organizations:
-    build:
-      context: .
-      dockerfile: msvc-organizations/Dockerfile
     image: codylionvivo/msvc-organizations:latest
     container_name: clearcost-msvc-organizations
     depends_on:
@@ -115,9 +106,6 @@ services:
       - "8002:8002"
 
   msvc-invitations:
-    build:
-      context: .
-      dockerfile: msvc-invitations/Dockerfile
     image: codylionvivo/msvc-invitations:latest
     container_name: clearcost-msvc-invitations
     depends_on:
@@ -142,9 +130,6 @@ services:
       - "8004:8004"
 
   msvc-projects:
-    build:
-      context: .
-      dockerfile: msvc-projects/Dockerfile
     image: codylionvivo/msvc-projects:latest
     container_name: clearcost-msvc-projects
     depends_on:
