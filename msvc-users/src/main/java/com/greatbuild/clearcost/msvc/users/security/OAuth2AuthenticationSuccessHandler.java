@@ -1,4 +1,5 @@
 package com.greatbuild.clearcost.msvc.users.security;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.greatbuild.clearcost.msvc.users.models.entities.User;
 import com.greatbuild.clearcost.msvc.users.services.UserService;
@@ -26,7 +27,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final JwtService jwtService;
     private final UserService userService;
 
-    private static final String FRONTEND_CALLBACK_URL = "http://localhost:4200/login";
+    @Value("${app.frontend.base-url}")
+    private String frontendBaseUrl;
 
     public OAuth2AuthenticationSuccessHandler(JwtService jwtService, UserService userService) {
         this.jwtService = jwtService;
@@ -45,7 +47,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             
             if (email == null || email.isBlank()) {
                 // Redirigir al frontend con error
-                String errorUrl = UriComponentsBuilder.fromUriString(FRONTEND_CALLBACK_URL)
+                String errorUrl = UriComponentsBuilder
+                        .fromUriString(frontendBaseUrl + "/login")
                         .queryParam("error", "no_email")
                         .build()
                         .toUriString();
@@ -75,7 +78,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             String jwt = jwtService.generateToken(user.getId(), jwtAuthentication);
 
             // Construir URL de redirección al frontend con parámetros
-            String targetUrl = UriComponentsBuilder.fromUriString(FRONTEND_CALLBACK_URL)
+            String targetUrl = UriComponentsBuilder
+                    .fromUriString(frontendBaseUrl + "/login")
                     .queryParam("token", jwt)
                     .queryParam("email", user.getEmail())
                     .queryParam("needsRoleSelection", needsRoleSelection)
